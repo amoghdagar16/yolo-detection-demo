@@ -8,7 +8,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-import cv2
 import numpy as np
 from PIL import Image
 import tempfile
