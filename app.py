@@ -1,4 +1,13 @@
 import streamlit as st
+
+# Must be the first Streamlit command
+st.set_page_config(
+    page_title="Amogh's YOLOv8 Detection Demo",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 import cv2
 import numpy as np
 from PIL import Image
@@ -12,14 +21,6 @@ try:
 except ImportError:
     YOLO_AVAILABLE = False
     st.error("⚠️ YOLOv8 not installed. Install with: pip install ultralytics")
-
-# Page config
-st.set_page_config(
-    page_title="Amogh's YOLOv8 Detection Demo",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Custom CSS for better styling
 st.markdown("""
@@ -56,12 +57,9 @@ st.markdown("""
 
 @st.cache_resource
 def load_model():
-    """Load the YOLOv8 model. Replace with your actual model path."""
+    """Load the YOLOv8 model."""
     try:
-        # Replace 'yolov8n.pt' with your actual model file
-        # For your trained model, use something like 'best.pt' or 'your_model.pt'
-      #  model_path = "/Users/amoghdagar/objectDet/runs/detect/train_skatepark_sep12/weights/best.pt"
-        model = YOLO("best.pt")  # This will download the pretrained model
+        model = YOLO("best.pt")  # Your trained model in the repo
         return model
     except Exception as e:
         st.error(f"Failed to load model: {str(e)}")
@@ -70,19 +68,11 @@ def load_model():
 def process_image(image, model):
     """Process image with YOLO model and return results."""
     try:
-        # Convert PIL Image to numpy array
         image_np = np.array(image)
-        
-        # Run YOLO detection
-        results = model(image_np, conf=0.3)  # Confidence threshold
-        
-        # Get the first result (since we're processing one image)
+        results = model(image_np, conf=0.3)
         result = results[0]
-        
-        # Plot results on image
         annotated_image = result.plot()
-        
-        # Extract detection details
+
         detections = []
         if result.boxes is not None:
             for box in result.boxes:
@@ -92,15 +82,14 @@ def process_image(image, model):
                     'bbox': box.xyxy[0].tolist()
                 }
                 detections.append(detection)
-        
+
         return annotated_image, detections, True
-    
+
     except Exception as e:
         st.error(f"Detection failed: {str(e)}")
         return None, [], False
 
 def main():
-    # Header
     st.markdown("""
     <div class="main-header">
         <h1>🤖 YOLOv8 Object Detection Demo</h1>
@@ -108,8 +97,7 @@ def main():
         <p><strong>Achieved 80% accuracy on skateboarder and pedestrian detection</strong></p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Sidebar with project info
+
     with st.sidebar:
         st.markdown("### 📋 Project Details")
         st.markdown("""
@@ -119,7 +107,7 @@ def main():
         **Tech Stack:** Python, YOLOv8, OpenCV, PyTorch  
         **Achievement:** 80% accuracy improvement  
         """)
-        
+
         st.markdown("### 🎯 Model Capabilities")
         st.markdown("""
         - **Skateboarder Detection**
@@ -127,17 +115,16 @@ def main():
         - **Real-time Processing**
         - **High Confidence Scoring**
         """)
-        
+
         st.markdown("### 🔗 Links")
         st.markdown("""
         - [Portfolio](https://your-portfolio.vercel.app)
         - [GitHub](https://github.com/amogh-dagar)
         - [LinkedIn](https://linkedin.com/in/amogh-dagar-613807215)
         """)
-    
-    # Main content
+
     col1, col2 = st.columns([1, 1])
-    
+
     with col1:
         st.markdown("### 📤 Upload Image for Detection")
         uploaded_file = st.file_uploader(
@@ -145,60 +132,46 @@ def main():
             type=['jpg', 'jpeg', 'png'],
             help="Upload an image containing people or skateboarders for best results"
         )
-        
-        # Sample images section
+
         st.markdown("### 🖼️ Or Try Sample Images")
         sample_choice = st.selectbox(
             "Choose a sample image:",
             ["None", "Street Scene", "Skateboarding", "Pedestrians"]
         )
-        
+
         if sample_choice != "None":
             st.info(f"📷 Selected: {sample_choice} - Click 'Run Detection' to process")
-    
+
     with col2:
         st.markdown("### 🔍 Detection Results")
-        
-        # Check if model is available
+
         if not YOLO_AVAILABLE:
             st.error("YOLOv8 not available. This is a demo interface.")
             st.info("In production, this connects to my trained model achieving 80% accuracy.")
             return
-        
-        # Load model
+
         model = load_model()
         if model is None:
             st.error("Failed to load YOLO model")
             return
-        
-        # Process uploaded image
+
         if uploaded_file is not None:
-            # Display original image
             image = Image.open(uploaded_file)
             st.image(image, caption="📷 Original Image", use_column_width=True)
-            
-            # Run detection button
+
             if st.button("🔍 Run Detection", type="primary"):
                 with st.spinner("🤖 AI model processing..."):
                     annotated_image, detections, success = process_image(image, model)
-                    
+
                     if success and annotated_image is not None:
-                        # Display annotated image
-                        st.image(
-                            annotated_image, 
-                            caption="🎯 Detection Results", 
-                            use_column_width=True
-                        )
-                        
-                        # Display detection statistics
+                        st.image(annotated_image, caption="🎯 Detection Results", use_column_width=True)
+
                         if detections:
                             st.markdown("### 📊 Detection Summary")
-                            
-                            # Stats boxes
                             total_detections = len(detections)
                             avg_confidence = np.mean([d['confidence'] for d in detections])
                             unique_classes = len(set([d['class'] for d in detections]))
-                            
+
                             col_stat1, col_stat2, col_stat3 = st.columns(3)
                             with col_stat1:
                                 st.metric("Objects Found", total_detections)
@@ -206,8 +179,7 @@ def main():
                                 st.metric("Avg Confidence", f"{avg_confidence:.1%}")
                             with col_stat3:
                                 st.metric("Object Types", unique_classes)
-                            
-                            # Detailed results
+
                             st.markdown("### 📋 Detailed Results")
                             for i, detection in enumerate(detections, 1):
                                 confidence_color = "🟢" if detection['confidence'] > 0.7 else "🟡" if detection['confidence'] > 0.5 else "🔴"
@@ -221,15 +193,13 @@ def main():
                             st.warning("🔍 No objects detected. Try an image with people or skateboarders.")
                     else:
                         st.error("❌ Detection failed. Please try another image.")
-        
+
         elif sample_choice != "None":
             st.info(f"📷 Sample image selected: {sample_choice}")
             st.markdown("Upload an image or use the sample to see detection in action!")
-        
+
         else:
             st.info("📤 Upload an image to start object detection")
-            
-            # Demo placeholder
             st.markdown("""
             ### 🎯 What this demo shows:
             - **Real-time object detection** using my trained YOLOv8 model
@@ -238,8 +208,7 @@ def main():
             - **Confidence scoring** for each detected object
             - **Production-ready** AI model deployment
             """)
-    
-    # Footer with technical details
+
     st.markdown("---")
     st.markdown("""
     ### 🛠️ Technical Implementation
